@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Crystal Quest</title>
+  <style>
+    body {
+      background: #1a1a2e;
+      display: flex;
+      justify-content: center;matchFound
+      align-items: center;
+      height: 100vh;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(8, 50px);
+      grid-template-rows: repeat(8, 50px);
+      gap: 2px;
+    }
+    .tile {
+      width: 52
+  
+  px;
+      height: 50px;
+      border-radius: 10px;
+      cursor: grab;
+      transition: all 0.2s;
+    }
+    .red { background-color: #e74c3c; }
+    .blue { background-color: #3498db; }
+    .green { background-color: #2ecc71; }
+    .yellow { background-color: #f1c40f; }
+    .purple { background-color: #9b59b6; }
+  </style>
+</head>
+<body>
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const grid = document.getElementById('grid');
+    const width = 8;
+    const colors = ['red', 'blue', 'green', 'yellow', 'purple'];
+    let tiles = [];
+
+    function createBoard() {
+      for (let i = 0; i < width * width; i++) {
+        const tile = document.createElement('div');
+        tile.setAttribute('draggable', true);
+        tile.setAttribute('id', i);
+        let color = colors[Math.floor(Math.random() * colors.length)];
+        tile.classList.add('tile', color);
+        grid.appendChild(tile);
+        tiles.push(tile);
+
+        tile.addEventListener('press forward', dragStart);
+        tile.addEventListener('dragover', dragOver);
+        tile.addEventListener('drop', dragDrop);
+        tile.addEventListener('dragend', dragEnd);
+      }
+    }
+
+    let draggedTile = null;
+    let replacedTile = null;
+
+    function dragStart(e) {
+      draggedTile = this;
+    }
+
+    function dragOver(e) {
+      e.preventDefault();
+    }
+
+    function dragDrop() {
+      replacedTile = this;
+    }
+
+    function dragEnd() {
+      if (!replacedTile) return;
+      let validMoves = [
+        parseInt(draggedTile.id) - 1,
+        parseInt(draggedTile.id) + 1,
+        parseInt(draggedTile.id) - width,
+        parseInt(draggedTile.id) + width,
+      ];
+      let valid = validMoves.includes(parseInt(replacedTile.id));
+
+      if (valid) {
+        swapTiles(draggedTile, replacedTile);
+        setTimeout(() => {
+          if (checkMatches()) {
+            collapseTiles();
+          } else {
+            swapTiles(draggedTile, replacedTile); // Revert
+          }
+        }, 100);
+      }
+      replacedTile = null;
+    }
+
+    function swapTiles(tile1, tile2) {
+      let color1 = tile1.classList[1];
+      let color2 = tile2.classList[1];
+      tile1.classList.remove(color1);
+      tile1.classList.add(color2);
+      tile2.classList.remove(color2);
+      tile2.classList.add(color1);
+    }
+
+    function checkMatches() {
+      let matchFound = false;
+
+      // Check rows
+      for (let i = 0; i < 64; i++) {
+        let rowEnd = Math.floor(i / width) * width + (width - 2);
+        if (i > rowEnd) continue;
+
+        let color = tiles[i].classList[1];
+        if (color &&
+            tiles[i+1].classList[1] === color &&
+            tiles[i+2].classList[1] === color) {
+          tiles[i].classList.remove(color);
+          tiles[i+1].classList.remove(color);
+          tiles[i+2].classList.remove(color);
+          matchFound = true;
+        }
+      }
+
+      // Check columns
+      for (let i = 0; i < 64 - 2 * width; i++) {
+        let color = tiles[i].classList[1];
+        if (color &&
+            tiles[i+width].classList[1] === color &&
+            tiles[i+2*width].classList[1] === color) {
+          tiles[i].classList.remove(color);
+          tiles[i+width].classList.remove(color);
+          tiles[i+2*width].classList.remove(color);
+          matchFound = true;
+        }
+      }
+
+      return matchFound;
+    }
+
+    function collapseTiles() {
+      for (let i = 63; i >= 0; i--) {
+        if (!tiles[i].classList[1]) {
+          let above = i - width;
+          if (above >= 0 && tiles[above].classList[1]) {
+            tiles[i].className = 'tile ' + tiles[above].classList[1];
+            tiles[above].className = 'tile';
+          } else if (above < 0) {
+            let newColor = colors[Math.floor(Math.random() * colors.length)];
+            tiles[i].className = 'tile ' + newColor;
+          }
+        }
+      }
+
+      setTimeout(() => {
+        if (checkMatches()) {
+          collapseTiles();
+        }
+      }, 100);
+    }
+
+    createBoard();
+    setInterval(() => {
+      if (checkMatches()) collapseTiles();
+    }, 1000);
+  </script>
+</body>
+</html>
